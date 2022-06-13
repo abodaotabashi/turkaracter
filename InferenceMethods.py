@@ -144,17 +144,19 @@ def segmentTextToChars(image, image_dimension=28, verbose=0):
 
 def predictText(charactersSeparatedInWords, model, show_top_k=False, k=3):
     text = ""
+    accuracies = []
     for word in charactersSeparatedInWords:
         for charImage in word:
             # print(charImage.shape) #  (28, 28)
             image = charImage[np.newaxis, :, :, np.newaxis]
             # print(image.shape) #  (1, 28, 28, 1)
-            y_pred = np.argmax(model.predict(image), axis=-1)
+            Y_probas = model.predict(image)
+            y_pred = np.argmax(Y_probas, axis=-1)
+            accuracies.append(Y_probas[0][y_pred.item(0)])
             y_pred_value = decodeLabel(y_pred.item(0))
             if show_top_k == True:
                 print("=======================================")
                 displayImage(charImage)
-                Y_probas = model.predict(image)
                 top_k = tf.nn.top_k(Y_probas, k=k)
                 for k_index in range(k):
                     class_name = decodeLabel(int(top_k.indices[0, k_index]))
@@ -164,4 +166,6 @@ def predictText(charactersSeparatedInWords, model, show_top_k=False, k=3):
                 print("=======================================")
             text = text + y_pred_value
         text = text + " "
-    return text
+        accuracy = sum(accuracies)
+        accuracy = accuracy / len(accuracies)
+    return text, accuracy
