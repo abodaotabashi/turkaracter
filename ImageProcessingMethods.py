@@ -1,7 +1,9 @@
 import cv2
 import numpy as np
 
-# =================== Preprocessing ===================
+# ===========================================================
+# ===================+++ Preprocessing +++===================
+# ===========================================================
 
 def grayscale(image):
     gray_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -22,7 +24,9 @@ def add_borders(image, borderSize=20):
     image_with_border = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
     return image_with_border
 
-# =================== Segmentation ===================
+# ==========================================================
+# ===================+++ Segmentation +++===================
+# ==========================================================
 
 def segment_to_lines(image, verbose=0):
     lines = []
@@ -96,18 +100,24 @@ def segment_to_chars(wordsAsImages, verbose=0):
             char_image=image[0:y+h, x:x+w]
             img_canny_2 = cv2.Canny(char_image.copy(), 125, 200)
             contours_2, hierarchies_2 = cv2.findContours(img_canny_2.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            sorted_contour_lines_2 = sorted(contours_2, key=lambda contour: cv2.boundingRect(contour)[1]) #(x,y,w,h)
-            highest_y = np.inf
-            for contour_2 in sorted_contour_lines_2:
-                x2, y2, w2, h2 = cv2.boundingRect(contour_2)
-                char_image_temp=char_image[y2:y2+h2, x2:x2+w2]
-                highest_y = min(highest_y, y2)
-            char_image_2=image[highest_y:y+h, x:x+w]
-            allCharacters.append(char_image_2)
+            if len(contours_2) > 1 :
+                sorted_contour_lines_2 = sorted(contours_2, key=lambda contour: cv2.boundingRect(contour)[1]) #(x,y,w,h)
+                highest_y = np.inf
+                for contour_2 in sorted_contour_lines_2:
+                    x2, y2, w2, h2 = cv2.boundingRect(contour_2)
+                    char_image_temp=char_image[y2:y2+h2, x2:x2+w2]
+                    highest_y = min(highest_y, y2)
+                char_image_2=image[highest_y:y+h, x:x+w]
+                allCharacters.append(char_image_2)
+            else :
+                char_image=image[y:y+h, x:x+w]
+                allCharacters.append(char_image)
         allCharactersAsWords.append(allCharacters)
     return allCharactersAsWords
 
-# =================== Feeding To The Model ===================
+# ==================================================================
+# ===================+++ Feeding To The Model +++===================
+# ==================================================================
 
 def rescaleForModel(image, img_dimension=28):
     height, width = image.shape
