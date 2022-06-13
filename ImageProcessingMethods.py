@@ -24,7 +24,7 @@ def add_borders(image, borderSize=20):
 
 # =================== Segmentation ===================
 
-def segment_to_lines(image, kernel_height=25, kernel_width=125, verbose=0):
+def segment_to_lines(image, verbose=0):
     lines = []
     h, w = image.shape
     kernel = np.ones((int(h/40),w-10), dtype='uint8')
@@ -47,13 +47,12 @@ def segment_to_lines(image, kernel_height=25, kernel_width=125, verbose=0):
         cv2.rectangle(image_with_boxes, (x, y), (x+w, y+h), (100,255,100), thickness=2)
     return image_with_boxes, lines
 
-def segment_to_words(linesAsImages, kernel_height=15, kernel_width=25, verbose=0):
+def segment_to_words(linesAsImages, verbose=0):
     allWords = []
     for idx, lineImage in enumerate(linesAsImages):
         h, w = lineImage.shape
         kernel_height=int(h*(1/4))
         kernel_width=int(w*(1/35))
-        #print(kernel_height, ", ", kernel_width)
         kernel = np.ones((int(kernel_height),int(kernel_width)), dtype='uint8')
         dilated_image = cv2.dilate(lineImage.copy(), kernel, iterations=1)
         contours, hierarchies = cv2.findContours(dilated_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -67,10 +66,9 @@ def segment_to_words(linesAsImages, kernel_height=15, kernel_width=25, verbose=0
             x, y, w, h = cv2.boundingRect(contour_word)
             word_image=lineImage[y:y+h, x:x+w]
             allWords.append(word_image)
-            # cv2.rectangle(lineImage, (x, y), (x+w, y+h), (100,255,100), thickness=2)
     return allWords
 
-def segment_to_chars(wordsAsImages, kernel_height=13, kernel_width=7, verbose=0):
+def segment_to_chars(wordsAsImages, verbose=0):
     def rescaleFrame(frame, scale=1.5):
         width = int(frame.shape[1] * scale)
         height = int(frame.shape[0] * scale)
@@ -84,22 +82,28 @@ def segment_to_chars(wordsAsImages, kernel_height=13, kernel_width=7, verbose=0)
     for idx, wordImage in enumerate(wordsAsImages):
         allCharacters = []
         image = rescaleFrame(wordImage, 3)
-        h, w = image.shape
-        # kernel_height=int(h*(1/4))
-        # kernel_width=int(w*(1/50))
-        # kernel = np.ones((kernel_height,kernel_width), dtype='uint8')
-        # dilated_image = cv2.dilate(image.copy(), kernel, iterations=1)
+        height, width = image.shape
         img_canny = cv2.Canny(image, 125, 200)
         contours, hierarchies = cv2.findContours(img_canny.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        # contours, hierarchies = cv2.findContours(dilated_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         sorted_contour_lines = sorted(contours, key=lambda contour: cv2.boundingRect(contour)[0]) #(x,y,w,h)
         if verbose >= 3:
             print("{} Characters in {}. word Recognized".format(len(sorted_contour_lines), (idx+1)))
-        image_with_boxes = image.copy()
         for contour in sorted_contour_lines:
             x, y, w, h = cv2.boundingRect(contour)
-            char_image=image[y:y+h, x:x+w]
-            allCharacters.append(char_image)
+            if (y+h) < (int(height/100)*50): # Condition to get rid of points recognized as letters as possible as we can
+                continue
+            # To get all components of Multi-Component-Letters (e.g. i, j, ü, ö, ğ, etc.)
+            char_image=image[0:y+h, x:x+w]
+            img_canny_2 = cv2.Canny(char_image.copy(), 125, 200)
+            contours_2, hierarchies_2 = cv2.findContours(img_canny_2.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            sorted_contour_lines_2 = sorted(contours_2, key=lambda contour: cv2.boundingRect(contour)[1]) #(x,y,w,h)
+            highest_y = np.inf
+            for contour_2 in sorted_contour_lines_2:
+                x2, y2, w2, h2 = cv2.boundingRect(contour_2)
+                char_image_temp=char_image[y2:y2+h2, x2:x2+w2]
+                highest_y = min(highest_y, y2)
+            char_image_2=image[highest_y:y+h, x:x+w]
+            allCharacters.append(char_image_2)
         allCharactersAsWords.append(allCharacters)
     return allCharactersAsWords
 
