@@ -49,7 +49,7 @@ def segment_to_lines(image, kernel_height=25, kernel_width=125, verbose=0):
 
 def segment_to_words(linesAsImages, kernel_height=15, kernel_width=25, verbose=0):
     allWords = []
-    for lineImage in linesAsImages:
+    for idx, lineImage in enumerate(linesAsImages):
         h, w = lineImage.shape
         kernel_height=int(h*(1/4))
         kernel_width=int(w*(1/30))
@@ -58,8 +58,8 @@ def segment_to_words(linesAsImages, kernel_height=15, kernel_width=25, verbose=0
         dilated_image = cv2.dilate(lineImage.copy(), kernel, iterations=1)
         contours, hierarchies = cv2.findContours(dilated_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         sorted_contour_words = sorted(contours, key=lambda contour: cv2.boundingRect(contour)[0]) #(x,y,w,h)
-        if verbose > 0:
-            print(len(sorted_contour_words), " Words in this line Recognized")
+        if verbose == 2 or verbose >= 4:
+            print("{} Words in {}. line Recognized".format(len(sorted_contour_words), (idx+1)))
         for contour_word in sorted_contour_words:
             if cv2.contourArea(contour_word) < 80:
                 continue
@@ -70,7 +70,7 @@ def segment_to_words(linesAsImages, kernel_height=15, kernel_width=25, verbose=0
             # cv2.rectangle(lineImage, (x, y), (x+w, y+h), (100,255,100), thickness=2)
     return allWords
 
-def segment_to_chars(wordsAsImages, kernel_height=13, kernel_width=7):
+def segment_to_chars(wordsAsImages, kernel_height=13, kernel_width=7, verbose=0):
     def rescaleFrame(frame, scale=1.5):
         width = int(frame.shape[1] * scale)
         height = int(frame.shape[0] * scale)
@@ -81,7 +81,7 @@ def segment_to_chars(wordsAsImages, kernel_height=13, kernel_width=7):
         # If we enlarge the image we probably can use INTER_LINEAR or INTER_CUBIC
 
     allCharactersAsWords = []
-    for wordImage in wordsAsImages:
+    for idx, wordImage in enumerate(wordsAsImages):
         allCharacters = []
         image = rescaleFrame(wordImage, 3)
         h, w = image.shape
@@ -93,7 +93,8 @@ def segment_to_chars(wordsAsImages, kernel_height=13, kernel_width=7):
         contours, hierarchies = cv2.findContours(img_canny.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # contours, hierarchies = cv2.findContours(dilated_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         sorted_contour_lines = sorted(contours, key=lambda contour: cv2.boundingRect(contour)[0]) #(x,y,w,h)
-        # print(len(sorted_contour_lines))
+        if verbose >= 3:
+            print("{} Characters in {}. word Recognized".format(len(sorted_contour_lines), (idx+1)))
         image_with_boxes = image.copy()
         for contour in sorted_contour_lines:
             x, y, w, h = cv2.boundingRect(contour)
