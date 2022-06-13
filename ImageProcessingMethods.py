@@ -90,11 +90,16 @@ def segment_to_chars(wordsAsImages, verbose=0):
         img_canny = cv2.Canny(image, 125, 200)
         contours, hierarchies = cv2.findContours(img_canny.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         sorted_contour_lines = sorted(contours, key=lambda contour: cv2.boundingRect(contour)[0]) #(x,y,w,h)
-        if verbose >= 3:
-            print("{} Characters in {}. word Recognized".format(len(sorted_contour_lines), (idx+1)))
+        sorted_contour_lines_areas = sorted(contours, key=lambda contour: cv2.contourArea(contour))
+        max_area = cv2.contourArea(sorted_contour_lines_areas[-1])
         for contour in sorted_contour_lines:
             x, y, w, h = cv2.boundingRect(contour)
-            if (y+h) < (int(height/100)*50): # Condition to get rid of points recognized as letters as possible as we can
+            # Conditions to get rid of points recognized as letters as possible as we can
+            if (y+h) < (int(height/100)*38): #(e.g. EĞİTİM)
+                continue
+            elif ((y+h) < (int(height/100)*48)) and (cv2.contourArea(contour) < (max_area*0.2)): #(e.g. diyor)
+                continue
+            elif ((y+h) < (int(height/100)*80)) and (cv2.contourArea(contour) < (max_area*0.07)): #(e.g. din)
                 continue
             # To get all components of Multi-Component-Letters (e.g. i, j, ü, ö, ğ, etc.)
             char_image=image[0:y+h, x:x+w]
@@ -112,6 +117,8 @@ def segment_to_chars(wordsAsImages, verbose=0):
             else :
                 char_image=image[y:y+h, x:x+w]
                 allCharacters.append(char_image)
+        if verbose >= 3:
+            print("{} Characters in {}. word Recognized".format(len(allCharacters), (idx+1)))
         allCharactersAsWords.append(allCharacters)
     return allCharactersAsWords
 

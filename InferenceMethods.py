@@ -144,7 +144,7 @@ def segmentTextToChars(image, image_dimension=28, verbose=0):
 
 def predictText(charactersSeparatedInWords, model, show_top_k=False, k=3):
     text = ""
-    accuracies = []
+    probabilities = []
     for word in charactersSeparatedInWords:
         for charImage in word:
             # print(charImage.shape) #  (28, 28)
@@ -152,7 +152,7 @@ def predictText(charactersSeparatedInWords, model, show_top_k=False, k=3):
             # print(image.shape) #  (1, 28, 28, 1)
             Y_probas = model.predict(image)
             y_pred = np.argmax(Y_probas, axis=-1)
-            accuracies.append(Y_probas[0][y_pred.item(0)])
+            probabilities.append(Y_probas[0][y_pred.item(0)])
             y_pred_value = decodeLabel(y_pred.item(0))
             if show_top_k == True:
                 print("=======================================")
@@ -166,6 +166,6 @@ def predictText(charactersSeparatedInWords, model, show_top_k=False, k=3):
                 print("=======================================")
             text = text + y_pred_value
         text = text + " "
-        accuracy = sum(accuracies)
-        accuracy = accuracy / len(accuracies)
-    return text, accuracy
+        overall_probability = sum(probabilities)
+        overall_probability = overall_probability / len(probabilities)
+    return text, overall_probability
