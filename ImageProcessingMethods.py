@@ -27,11 +27,11 @@ def add_borders(image, borderSize=20):
 def segment_to_lines(image, kernel_height=25, kernel_width=125, verbose=0):
     lines = []
     h, w = image.shape
-    kernel = np.ones((kernel_height,w-10), dtype='uint8')
+    kernel = np.ones((int(h/40),w-10), dtype='uint8')
     dilated_image = cv2.dilate(image, kernel, iterations=1)
     contours, hierarchies = cv2.findContours(dilated_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     sorted_contour_lines = sorted(contours, key=lambda contour: cv2.boundingRect(contour)[1]) #(x,y,w,h)
-    if verbose > 0:
+    if verbose == 1 or verbose >= 4:
         print(len(sorted_contour_lines), " Lines Recognized")
     image_with_boxes = image.copy()
     for contour in sorted_contour_lines:
@@ -52,8 +52,8 @@ def segment_to_words(linesAsImages, kernel_height=15, kernel_width=25, verbose=0
     for idx, lineImage in enumerate(linesAsImages):
         h, w = lineImage.shape
         kernel_height=int(h*(1/4))
-        kernel_width=int(w*(1/30))
-        print(kernel_height, ", ", kernel_width)
+        kernel_width=int(w*(1/35))
+        #print(kernel_height, ", ", kernel_width)
         kernel = np.ones((int(kernel_height),int(kernel_width)), dtype='uint8')
         dilated_image = cv2.dilate(lineImage.copy(), kernel, iterations=1)
         contours, hierarchies = cv2.findContours(dilated_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
