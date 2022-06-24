@@ -4,6 +4,7 @@
 
 import numpy as np
 from ImageProcessingMethods import grayscale, invert, binarize, segment_to_lines, segment_to_words, segment_to_chars, repairShapeOfCharacter, add_borders
+from autocorrect import Speller
 
 # TensorFlow ≥2.0 is required
 import tensorflow as tf
@@ -63,9 +64,9 @@ def decodeLabel(value):
             71:252  #ü
         }
         return (chr(turkishDecoder.get(value)))
-    elif value > 71:
-        # Labels for punctuation marks
-        return 0
+    # elif value > 71:
+    #     # Labels for punctuation marks
+    #     return 0
 
 
 # ======================================================
@@ -150,7 +151,7 @@ def predictText(charactersSeparatedInWords, model, show_top_k=False, k=3):
             # print(charImage.shape) #  (28, 28)
             image = charImage[np.newaxis, :, :, np.newaxis]
             # print(image.shape) #  (1, 28, 28, 1)
-            Y_probas = model.predict(image)
+            Y_probas = model.predict(image, verbose=0)
             y_pred = np.argmax(Y_probas, axis=-1)
             probabilities.append(Y_probas[0][y_pred.item(0)])
             y_pred_value = decodeLabel(y_pred.item(0))
@@ -169,3 +170,12 @@ def predictText(charactersSeparatedInWords, model, show_top_k=False, k=3):
         overall_probability = sum(probabilities)
         overall_probability = overall_probability / len(probabilities)
     return text, overall_probability
+
+
+# =======================================================
+# ============+++ Postprocessing Function +++============
+# =======================================================
+
+def autoCorrectText(text):
+    spell = Speller(only_replacements=True, lang="tr")
+    return spell(text)
